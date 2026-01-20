@@ -41,7 +41,7 @@ const Home = () => {
             transition={{ duration: 0.8, delay: 0.4 }}
           >
             <Link to="/browse" className="btn btn-primary">
-              🔍 Browse Questions
+              🔍 Browse Question Papers
             </Link>
             <Link to="/upload" className="btn btn-secondary">
               📤 Upload Paper
@@ -142,4 +142,4 @@ const Home = () => {
   )
 }
 
-export default Home
+export default Home;

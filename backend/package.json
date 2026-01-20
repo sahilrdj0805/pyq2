@@ -5,7 +5,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon server.js",
-    "seed:admin": "node seedAdmin.js"
+    "seed:admin": "node seedAdmin.js",
+    "seed:pyqs": "node addSamplePYQs.js",
+    "update:pyqs": "node updatePYQs.js"
   },
   "keywords": [],
   "author": "",

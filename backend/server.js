@@ -6,6 +6,7 @@ import pyqRoutes from './routes/pyqRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import uploadRequestRoutes from './routes/uploadRequestRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import statsRoutes from './routes/statsRoutes.js';
 import connectDB from './config/db.js';
 import axios from 'axios';
 
@@ -51,6 +52,19 @@ app.get('/api/download/:id', async (req, res) => {
       return res.status(400).json({ error: 'PDF URL is required' });
     }
     
+    // Increment download count for this PYQ
+    const pyqId = req.params.id;
+    if (pyqId && pyqId !== 'undefined') {
+      try {
+        await import('./models/PYQ.js').then(module => {
+          const PYQ = module.default;
+          return PYQ.findByIdAndUpdate(pyqId, { $inc: { downloadCount: 1 } });
+        });
+      } catch (error) {
+        console.log('Could not update download count:', error.message);
+      }
+    }
+    
     // Fetch PDF from Cloudinary
     const response = await axios.get(url, {
       responseType: 'stream'
@@ -76,6 +90,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/pyqs', pyqRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin', statsRoutes);
 app.use('/api/upload-requests', uploadRequestRoutes);
 
 app.listen(PORT, () => {

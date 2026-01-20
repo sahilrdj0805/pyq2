@@ -33,31 +33,34 @@ function AppContent() {
       return false
     }
 
-    // Push multiple states to make back button ineffective
-    for (let i = 0; i < 10; i++) {
-      window.history.pushState(null, '', window.location.pathname)
-    }
+    // Only apply history manipulation if user is authenticated
+    if (isAuthenticated) {
+      // Push multiple states to make back button ineffective
+      for (let i = 0; i < 10; i++) {
+        window.history.pushState(null, '', window.location.pathname)
+      }
 
-    window.addEventListener('popstate', handlePopState, true)
-    
-    // Also disable keyboard shortcuts
-    const handleKeyDown = (e) => {
-      // Disable Alt+Left, Alt+Right, Backspace navigation
-      if ((e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) ||
-          (e.key === 'Backspace' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA')) {
-        e.preventDefault()
-        e.stopPropagation()
-        return false
+      window.addEventListener('popstate', handlePopState, true)
+      
+      // Also disable keyboard shortcuts
+      const handleKeyDown = (e) => {
+        // Disable Alt+Left, Alt+Right, Backspace navigation
+        if ((e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) ||
+            (e.key === 'Backspace' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA')) {
+          e.preventDefault()
+          e.stopPropagation()
+          return false
+        }
+      }
+
+      document.addEventListener('keydown', handleKeyDown, true)
+
+      return () => {
+        window.removeEventListener('popstate', handlePopState, true)
+        document.removeEventListener('keydown', handleKeyDown, true)
       }
     }
-
-    document.addEventListener('keydown', handleKeyDown, true)
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState, true)
-      document.removeEventListener('keydown', handleKeyDown, true)
-    }
-  }, [])
+  }, [isAuthenticated])
 
   if (loading) {
     return (

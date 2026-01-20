@@ -52,6 +52,17 @@ export const AdminAPI = {
     }
   },
 
+  // Get dashboard statistics
+  async getDashboardStats() {
+    try {
+      const response = await api.get('/admin/stats')
+      return response.data.stats
+    } catch (error) {
+      console.error('Failed to fetch dashboard stats:', error)
+      throw new Error('Failed to fetch dashboard statistics')
+    }
+  },
+
   // Approve request
   async approveRequest(requestId) {
     try {

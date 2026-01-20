@@ -47,7 +47,8 @@ const Auth = () => {
       AuthService.setToken(response.token)
       AuthService.setUser(response.user)
       
-      // Redirect based on role
+      // Clear any existing history and redirect
+      window.history.replaceState(null, '', (activeTab === 'admin' && !isSignUp) ? '/admin' : '/')
       window.location.href = (activeTab === 'admin' && !isSignUp) ? '/admin' : '/'
     } catch (error) {
       setError(error.message || 'Authentication failed')

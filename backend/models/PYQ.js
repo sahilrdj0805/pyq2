@@ -30,6 +30,11 @@ const pyqSchema = new mongoose.Schema(
       type: String,
       enum: ["approved", "pending", "rejected"],
       default: "approved"
+    },
+
+    downloadCount: {
+      type: Number,
+      default: 0
     }
   },
   { timestamps: true }
