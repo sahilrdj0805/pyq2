@@ -85,16 +85,13 @@ export const signin = async (req, res) => {
 
 
 // =======================
-// ADMIN LOGIN (ADMIN + SUPERADMIN)
+// ADMIN LOGIN (ADMIN ONLY)
 // =======================
 export const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ 
-      email, 
-      $or: [{ role: 'admin' }, { role: 'superadmin' }]
-    });
+    const user = await User.findOne({ email, role: 'admin' });
     if (!user) {
       return res.status(401).json({ message: "Invalid admin credentials" });
     }

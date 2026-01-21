@@ -19,23 +19,39 @@ const PORT = process.env.PORT || 5000;
 const allowedOrigins = [
   'http://localhost:5173', // Vite dev server
   'http://localhost:3000', // React dev server
-  'https://your-frontend-domain.com', // Production frontend
-  'https://your-app.vercel.app', // Vercel deployment
-  'https://your-app.netlify.app' // Netlify deployment
+  'http://127.0.0.1:5173', // Alternative localhost
+  'http://127.0.0.1:3000', // Alternative localhost
+  // TODO: Add your production frontend URLs here after deployment:
+  // 'https://your-pyq-app.vercel.app',
+  // 'https://your-pyq-app.netlify.app',
+  // 'https://pyq-hub.vercel.app',
+  // 'https://pyqbbd.netlify.app'
 ];
 
+// Universal CORS setup that works in all environments
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
     
+    // In development, allow all origins
+    if (process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    
+    // In production, check allowed origins
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: ['Content-Length', 'X-Foo', 'X-Bar'],
+  preflightContinue: false,
+  optionsSuccessStatus: 200
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

@@ -6,14 +6,13 @@ import cloudinary from "../config/cloudinary.js";
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: "PYQs", // Same as before
+    folder: "PYQs",
     resource_type: "raw",
-    allowed_formats: ["pdf"], // Same as before
+    allowed_formats: ["pdf"],
     use_filename: true,
     unique_filename: false,
-    transformation: [
-      { flags: "attachment" } // This ensures proper PDF content-type
-    ]
+    chunk_size: 6000000, // 6MB chunks for faster upload
+    timeout: 60000 // 60 second timeout
   }
 });
 
@@ -27,7 +26,7 @@ const upload = multer({
     }
   },
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: 15 * 1024 * 1024 // 15MB limit (increased)
   }
 });
 

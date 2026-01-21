@@ -99,7 +99,7 @@ export const AdminAPI = {
   // Get subjects
   async getSubjects() {
     try {
-      const response = await api.get('/subjects')
+      const response = await api.get('/admin/subjects')
       return response.data
     } catch (error) {
       throw new Error('Failed to fetch subjects')
@@ -113,7 +113,8 @@ export const AdminAPI = {
         headers: { 
           'Content-Type': 'multipart/form-data',
           ...AuthService.getAuthHeaders(null)
-        }
+        },
+        timeout: 120000 // 2 minute timeout for uploads
       })
       return response.data
     } catch (error) {
@@ -158,6 +159,26 @@ export const AdminAPI = {
       return response.data
     } catch (error) {
       throw new Error(error.response?.data?.message || 'Failed to create admin')
+    }
+  },
+
+  // Delete subject
+  async deleteSubject(subjectId) {
+    try {
+      const response = await api.delete(`/admin/subjects/${subjectId}`)
+      return response.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to delete subject')
+    }
+  },
+
+  // Delete PYQ
+  async deletePYQ(pyqId) {
+    try {
+      const response = await api.delete(`/admin/pyqs/${pyqId}`)
+      return response.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to delete PYQ')
     }
   }
 }

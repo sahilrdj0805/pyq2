@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const createSuperAdmin = async () => {
+const createAdmin = async () => {
   try {
     // Connect to database
     await mongoose.connect(process.env.MONGODB_URI);
@@ -18,33 +18,33 @@ const createSuperAdmin = async () => {
       console.log('🗑️ Existing user with this email deleted');
     }
 
-    // SuperAdmin credentials from environment variables
-    const superAdminData = {
-      name: process.env.ADMIN_NAME || 'PYQ Hub Super Admin',
+    // Admin credentials from environment variables
+    const adminData = {
+      name: process.env.ADMIN_NAME || 'PYQ Hub Admin',
       email: process.env.ADMIN_EMAIL,
       password: process.env.ADMIN_PASSWORD,
-      role: 'superadmin'
+      role: 'admin'
     };
 
-    if (!superAdminData.email || !superAdminData.password) {
+    if (!adminData.email || !adminData.password) {
       console.log('❌ Please set ADMIN_EMAIL and ADMIN_PASSWORD in .env file');
       process.exit(1);
     }
 
     // Hash password manually
-    const hashedPassword = await bcrypt.hash(superAdminData.password, 12);
+    const hashedPassword = await bcrypt.hash(adminData.password, 12);
     
-    // Create superadmin with direct MongoDB insert (bypass hooks)
-    const superAdmin = await User.collection.insertOne({
-      ...superAdminData,
+    // Create admin with direct MongoDB insert (bypass hooks)
+    const admin = await User.collection.insertOne({
+      ...adminData,
       password: hashedPassword,
       createdAt: new Date(),
       updatedAt: new Date(),
       isActive: true
     });
     
-    console.log('✅ Super Admin created successfully!');
-    console.log('📧 Email:', superAdminData.email);
+    console.log('✅ Admin created successfully!');
+    console.log('📧 Email:', adminData.email);
     console.log('⚠️  IMPORTANT: Change the password after first login!');
     
     process.exit(0);
@@ -54,4 +54,4 @@ const createSuperAdmin = async () => {
   }
 };
 
-createSuperAdmin();
+createAdmin();

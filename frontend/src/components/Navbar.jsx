@@ -24,7 +24,7 @@ const Navbar = () => {
     { name: 'Home', path: '/' },
     { name: 'Browse', path: '/browse' },
     { name: 'Upload', path: '/upload' },
-    ...(user?.role === 'admin' || user?.role === 'superadmin' ? [{ name: 'Admin', path: '/admin' }] : []),
+    ...(user?.role === 'admin' ? [{ name: 'Admin', path: '/admin' }] : []),
   ]
 
   return (
@@ -62,13 +62,13 @@ const Navbar = () => {
                   gap: '8px'
                 }}>
                   <span style={{ 
-                    background: user.role === 'superadmin' ? '#ff6b6b' : user.role === 'admin' ? '#9b59b6' : '#4a90e2',
+                    background: user.role === 'admin' ? '#ff6b6b' : '#4a90e2',
                     padding: '4px 8px',
                     borderRadius: '12px',
                     fontSize: '0.8rem',
                     fontWeight: '600'
                   }}>
-                    {user.role === 'superadmin' ? '🛡️ Super Admin' : user.role === 'admin' ? '🛡️ Admin' : '👤 User'}
+                    {user.role === 'admin' ? '🛡️ Admin' : '👤 User'}
                   </span>
                   {user.name}
                 </div>

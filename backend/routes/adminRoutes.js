@@ -8,7 +8,10 @@ import {
   getAllUsers,
   deleteUser,
   getAllAdmins,
-  createAdmin
+  createAdmin,
+  getAllSubjects,
+  deleteSubject,
+  deletePYQ
 } from "../controllers/uploadRequestController.js";
 import { protect, adminOnly } from "../middlewares/auth.js";
 import upload from "../middlewares/upload.js";
@@ -24,8 +27,11 @@ router.get("/pending", getPendingRequests);
 router.get("/stats", getDashboardStats);
 router.get("/users", getAllUsers);
 router.get("/admins", getAllAdmins);
+router.get("/subjects", getAllSubjects);
 router.post("/admins", createAdmin);
 router.delete("/users/:id", deleteUser);
+router.delete("/subjects/:id", deleteSubject);
+router.delete("/pyqs/:id", deletePYQ);
 router.put("/approve/:id", approveRequest);
 router.put("/reject/:id", rejectRequest);
 

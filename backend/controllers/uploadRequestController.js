@@ -37,7 +37,11 @@ export const getPendingRequests = async (req, res) => {
 
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find({}, '-password').sort({ createdAt: -1 });
+    // Get all users except current admin
+    const users = await User.find({ 
+      _id: { $ne: req.user.id },  // Exclude current user
+      role: { $ne: 'admin' }      // Exclude admin users
+    }, '-password').sort({ createdAt: -1 });
     res.json(users);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -60,6 +64,64 @@ export const deleteUser = async (req, res) => {
     }
     
     res.json({ message: "User deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getAllSubjects = async (req, res) => {
+  try {
+    const subjects = await Subject.find().sort({ name: 1 });
+    res.json(subjects);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const deleteSubject = async (req, res) => {
+  try {
+    const subjectId = req.params.id;
+    
+    // First delete all PYQs associated with this subject
+    const deletedPYQs = await PYQ.deleteMany({ subject: subjectId });
+    
+    // Then delete the subject
+    const deletedSubject = await Subject.findByIdAndDelete(subjectId);
+    
+    if (!deletedSubject) {
+      return res.status(404).json({ message: "Subject not found" });
+    }
+    
+    res.json({ 
+      message: `Subject deleted successfully along with ${deletedPYQs.deletedCount} PYQ(s)` 
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const deletePYQ = async (req, res) => {
+  try {
+    const pyqId = req.params.id;
+    
+    const deletedPYQ = await PYQ.findByIdAndDelete(pyqId);
+    
+    if (!deletedPYQ) {
+      return res.status(404).json({ message: "PYQ not found" });
+    }
+    
+    // Check if this was the last PYQ for this subject
+    const remainingPYQs = await PYQ.countDocuments({ subject: deletedPYQ.subject });
+    
+    let message = "PYQ deleted successfully";
+    
+    // If no PYQs remain for this subject, delete the subject too
+    if (remainingPYQs === 0) {
+      await Subject.findByIdAndDelete(deletedPYQ.subject);
+      message = "PYQ deleted successfully. Subject also deleted as no PYQs remain.";
+    }
+    
+    res.json({ message });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -113,7 +175,7 @@ export const createAdmin = async (req, res) => {
 export const getDashboardStats = async (req, res) => {
   try {
     const [totalUsers, totalSubjects, totalPYQs, pendingRequests, approvedToday, rejectedToday, totalDownloadsResult] = await Promise.all([
-      User.countDocuments(),
+      User.countDocuments({ role: { $ne: 'admin' } }),  // Exclude admin users from count
       Subject.countDocuments(),
       PYQ.countDocuments(),
       UploadRequest.countDocuments({ status: "pending" }),
