@@ -62,7 +62,8 @@ export const AdminAPI = {
         pendingRequests: 0,
         totalDownloads: 0,
         approvedToday: 0,
-        rejectedToday: 0
+        rejectedToday: 0,
+        popularSubjects: []
       }
     } catch (error) {
       return {
@@ -71,7 +72,8 @@ export const AdminAPI = {
         pendingRequests: 0,
         totalDownloads: 0,
         approvedToday: 0,
-        rejectedToday: 0
+        rejectedToday: 0,
+        popularSubjects: []
       }
     }
   },

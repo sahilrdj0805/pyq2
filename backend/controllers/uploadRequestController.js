@@ -2,6 +2,7 @@ import UploadRequest from "../models/UploadRequest.js";
 import Subject from "../models/Subject.js";
 import PYQ from "../models/PYQ.js";
 import User from "../models/User.js";
+import mongoose from "mongoose";
 
 export const createUploadRequest = async (req, res) => {
   try {
@@ -130,7 +131,7 @@ export const deletePYQ = async (req, res) => {
 
 export const getDashboardStats = async (req, res) => {
   try {
-    const [totalUsers, totalSubjects, totalPYQs, pendingRequests, approvedToday, rejectedToday, totalDownloadsResult] = await Promise.all([
+    const [totalUsers, totalSubjects, totalPYQs, pendingRequests, approvedToday, rejectedToday, totalDownloadsResult, popularSubjects] = await Promise.all([
       User.countDocuments({ role: { $ne: 'admin' } }),  // Exclude admin users from count
       Subject.countDocuments(),
       PYQ.countDocuments(),
@@ -145,6 +146,40 @@ export const getDashboardStats = async (req, res) => {
       }),
       PYQ.aggregate([
         { $group: { _id: null, totalDownloads: { $sum: "$downloadCount" } } }
+      ]),
+      // Get most popular subjects by total downloads
+      PYQ.aggregate([
+        {
+          $group: {
+            _id: "$subject",
+            totalDownloads: { $sum: "$downloadCount" },
+            pyqCount: { $sum: 1 }
+          }
+        },
+        {
+          $lookup: {
+            from: "subjects",
+            localField: "_id",
+            foreignField: "_id",
+            as: "subjectInfo"
+          }
+        },
+        {
+          $unwind: "$subjectInfo"
+        },
+        {
+          $project: {
+            name: "$subjectInfo.name",
+            totalDownloads: 1,
+            pyqCount: 1
+          }
+        },
+        {
+          $sort: { totalDownloads: -1 }
+        },
+        {
+          $limit: 5
+        }
       ])
     ]);
 
@@ -158,7 +193,8 @@ export const getDashboardStats = async (req, res) => {
         pendingRequests,
         totalDownloads,
         approvedToday,
-        rejectedToday
+        rejectedToday,
+        popularSubjects
       }
     });
   } catch (error) {

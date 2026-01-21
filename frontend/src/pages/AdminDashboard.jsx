@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AdminAPI } from '../ApiService'
 import AuthService from '../AuthService'
@@ -6,15 +6,13 @@ import AuthService from '../AuthService'
 const AdminDashboard = () => {
   const [user] = useState(() => AuthService.getUser())
   const [activeModule, setActiveModule] = useState('overview')
-  const [stats, setStats] = useState(() => {
-    const cached = localStorage.getItem('dashboardStats')
-    return cached ? JSON.parse(cached) : {
-      totalUsers: 0,
-      totalSubjects: 0,
-      totalPYQs: 0,
-      pendingRequests: 0,
-      totalDownloads: 0
-    }
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    totalSubjects: 0,
+    totalPYQs: 0,
+    pendingRequests: 0,
+    totalDownloads: 0,
+    popularSubjects: []
   })
   const [pendingRequests, setPendingRequests] = useState([])
   const [uploadForm, setUploadForm] = useState({
@@ -36,12 +34,25 @@ const AdminDashboard = () => {
   const [viewingSubject, setViewingSubject] = useState(null)
   const [subjectPYQs, setSubjectPYQs] = useState([])
   const [deletingPYQ, setDeletingPYQ] = useState(null)
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false)
+  const dropdownRef = useRef(null)
 
   useEffect(() => {
     fetchDashboardData()
     fetchSubjects()
     if (activeModule === 'users') {
       fetchUsers()
+    }
+    
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowProfileDropdown(false)
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [activeModule])
 
@@ -153,26 +164,16 @@ const AdminDashboard = () => {
         pendingRequests: dashboardStats.pendingRequests || 0,
         totalDownloads: dashboardStats.totalDownloads || 0,
         approvedToday: dashboardStats.approvedToday || 0,
-        rejectedToday: dashboardStats.rejectedToday || 0
+        rejectedToday: dashboardStats.rejectedToday || 0,
+        popularSubjects: dashboardStats.popularSubjects || []
       }
       setStats(newStats)
-      
-      // Cache stats for next refresh
-      localStorage.setItem('dashboardStats', JSON.stringify({
-        totalUsers: newStats.totalUsers,
-        totalSubjects: newStats.totalSubjects,
-        totalPYQs: newStats.totalPYQs,
-        pendingRequests: newStats.pendingRequests,
-        totalDownloads: newStats.totalDownloads
-      }))
     } catch (error) {
       if (error.response?.status === 401) {
         AuthService.logout()
         return
       }
-      
       console.error('Failed to fetch dashboard data:', error)
-      // Don't reset stats to 0 on error - keep existing cached data
     }
   }
 
@@ -181,7 +182,11 @@ const AdminDashboard = () => {
   }
 
   const handleModuleChange = (module) => {
-    setActiveModule(module)
+    if (activeModule === module) {
+      setActiveModule('overview')
+    } else {
+      setActiveModule(module)
+    }
   }
 
   const handleCloseModule = () => {
@@ -379,46 +384,213 @@ const AdminDashboard = () => {
             </h1>
           </div>
 
-          {/* Right Side */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '12px',
-              color: 'white'
-            }}>
-              <span style={{ fontWeight: '600' }}>{user?.name}</span>
-              <span style={{
-                background: user?.role === 'admin' ? '#ff6b6b' : '#4ecdc4',
-                padding: '4px 12px',
-                borderRadius: '20px',
-                fontSize: '0.8rem',
-                fontWeight: '600'
-              }}>
-                {user?.role === 'admin' ? '🛡️ Admin' : '👤 User'}
-              </span>
-            </div>
-            
-            <motion.button
-              onClick={handleLogout}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+          {/* Right Side - Profile Dropdown */}
+          <div className="profile-section" ref={dropdownRef} style={{ position: 'relative' }}>
+            <motion.div 
+              className="profile-trigger"
+              onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               style={{
-                background: 'rgba(255, 255, 255, 0.1)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '8px',
-                padding: '8px 16px',
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: '0.9rem',
-                fontWeight: '600',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '6px'
+                gap: '12px',
+                padding: '8px 12px',
+                borderRadius: '25px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                backdropFilter: 'blur(10px)'
               }}
             >
-              🚪 Logout
-            </motion.button>
+              <div className="profile-avatar" style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #ff6b6b, #ee5a52)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '18px',
+                fontWeight: '600',
+                color: 'white',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+              }}>
+                {user?.name?.charAt(0)?.toUpperCase() || 'A'}
+              </div>
+              
+              <div className="profile-info" style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start'
+              }}>
+                <span style={{
+                  color: 'white',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  lineHeight: '1.2'
+                }}>
+                  {user?.name}
+                </span>
+                <span style={{
+                  color: 'rgba(255,255,255,0.7)',
+                  fontSize: '12px',
+                  fontWeight: '500'
+                }}>
+                  Administrator
+                </span>
+              </div>
+              
+              <motion.div
+                animate={{ rotate: showProfileDropdown ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+                style={{
+                  color: 'rgba(255,255,255,0.7)',
+                  fontSize: '12px'
+                }}
+              >
+                ▼
+              </motion.div>
+            </motion.div>
+
+            <AnimatePresence>
+              {showProfileDropdown && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                  className="profile-dropdown"
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: '0',
+                    marginTop: '8px',
+                    width: '300px',
+                    background: 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(20px)',
+                    borderRadius: '16px',
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    overflow: 'hidden',
+                    zIndex: 1000
+                  }}
+                >
+                  <div className="dropdown-header" style={{
+                    padding: '24px',
+                    background: 'linear-gradient(135deg, #ff6b6b, #ee5a52)',
+                    color: 'white'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <div style={{
+                        width: '56px',
+                        height: '56px',
+                        borderRadius: '50%',
+                        background: 'rgba(255, 255, 255, 0.2)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '24px',
+                        fontWeight: '600'
+                      }}>
+                        {user?.name?.charAt(0)?.toUpperCase() || 'A'}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '18px', fontWeight: '700', marginBottom: '4px' }}>
+                          {user?.name}
+                        </div>
+                        <div style={{ fontSize: '14px', opacity: 0.9, marginBottom: '6px' }}>
+                          {user?.email}
+                        </div>
+                        <div style={{
+                          display: 'inline-block',
+                          background: 'rgba(255, 255, 255, 0.2)',
+                          padding: '4px 12px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: '600'
+                        }}>
+                          🛡️ Administrator
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="dropdown-menu" style={{ padding: '12px' }}>
+
+                    
+                    <motion.div
+                      className="dropdown-item"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '16px 20px',
+                        borderRadius: '12px',
+                        color: '#333',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        background: 'linear-gradient(135deg, rgba(72, 187, 120, 0.1) 0%, rgba(56, 161, 105, 0.1) 100%)',
+                        border: '1px solid rgba(72, 187, 120, 0.2)',
+                        margin: '0 8px'
+                      }}
+                    >
+                      <div style={{
+                        width: '12px',
+                        height: '12px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #48bb78, #38a169)',
+                        flexShrink: 0,
+                        boxShadow: '0 0 8px rgba(72, 187, 120, 0.4)',
+                        animation: 'pulse 2s infinite'
+                      }}></div>
+                      <div>
+                        <div style={{ fontWeight: '700', color: '#2d3748', fontSize: '15px' }}>Status: Active</div>
+                        <div style={{ fontSize: '12px', color: '#48bb78', fontWeight: '600' }}>Online and ready</div>
+                      </div>
+                    </motion.div>
+                    
+                    <div style={{
+                      height: '1px',
+                      background: 'rgba(0,0,0,0.1)',
+                      margin: '16px 16px 12px 16px'
+                    }} />
+                    
+
+                    
+
+                    
+                    <motion.div
+                      whileHover={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}
+                      onClick={() => {
+                        setShowProfileDropdown(false)
+                        handleLogout()
+                      }}
+                      className="dropdown-item"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '14px 16px',
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                        color: '#ef4444',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <span style={{ fontSize: '18px' }}>🚪</span>
+                      <div>
+                        <div style={{ fontWeight: '600' }}>Sign Out</div>
+                        <div style={{ fontSize: '12px', color: '#ef4444', opacity: 0.7 }}>End your session</div>
+                      </div>
+                    </motion.div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </nav>
@@ -541,95 +713,232 @@ const AdminDashboard = () => {
           </div>
         </motion.div>
 
-        {/* Your Profile Section */}
-        {user?.role === 'admin' && activeModule === 'overview' && (
+        {/* Recent Activity & System Health */}
+        {activeModule === 'overview' && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            style={{ marginBottom: '40px', display: 'flex', justifyContent: 'center' }}
+            style={{ marginBottom: '40px' }}
           >
-            <div style={{ maxWidth: '400px', width: '100%' }}>
-              <h2 style={{ 
-                color: 'white', 
-                fontSize: '1.8rem', 
-                fontWeight: '700',
-                marginBottom: '24px',
-                textAlign: 'center'
-              }}>
-                Your Profile
-              </h2>
-              
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+              gap: '24px'
+            }}>
+              {/* Recent Activity */}
               <div style={{
                 background: 'rgba(255, 255, 255, 0.1)',
                 backdropFilter: 'blur(20px)',
                 border: '1px solid rgba(255, 255, 255, 0.2)',
                 borderRadius: '16px',
-                padding: '32px',
-                textAlign: 'center'
+                padding: '24px'
               }}>
-                <div style={{ fontSize: '4rem', marginBottom: '20px' }}>🛡️</div>
-                <h3 style={{ color: 'white', fontSize: '1.5rem', fontWeight: '700', marginBottom: '8px' }}>
-                  {user?.name}
-                </h3>
-                <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '1rem', marginBottom: '16px' }}>
-                  {user?.email}
-                </p>
-                <span style={{
-                  background: '#ff6b6b',
-                  padding: '8px 20px',
-                  borderRadius: '25px',
-                  fontSize: '0.9rem',
-                  fontWeight: '600',
+                <h3 style={{
                   color: 'white',
-                  display: 'inline-block',
-                  marginBottom: '20px'
-                }}>
-                  Admin
-                </span>
-                
-                <div style={{ 
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  marginBottom: '20px'
-                }}>
-                  <h4 style={{ color: 'white', fontSize: '1.1rem', fontWeight: '600', marginBottom: '12px' }}>
-                    Quick Stats
-                  </h4>
-                  <div style={{ display: 'grid', gap: '8px', fontSize: '0.9rem', color: 'rgba(255,255,255,0.8)' }}>
-                    <div>📊 Total Users: {stats.totalUsers}</div>
-                    <div>📚 Total Subjects: {stats.totalSubjects}</div>
-                    <div>📄 Total PYQs: {stats.totalPYQs}</div>
-                    <div>⏳ Pending: {stats.pendingRequests}</div>
-                    <div>📥 Downloads: {stats.totalDownloads}</div>
-                  </div>
-                </div>
-
-                <div style={{
-                  background: 'rgba(72, 187, 120, 0.1)',
-                  border: '1px solid rgba(72, 187, 120, 0.3)',
-                  borderRadius: '8px',
-                  padding: '12px',
+                  fontSize: '1.3rem',
+                  fontWeight: '700',
+                  marginBottom: '20px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
                   gap: '8px'
                 }}>
+                  ⚡ Recent Activity
+                </h3>
+                
+                <div style={{ display: 'grid', gap: '12px' }}>
                   <div style={{
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    background: '#48bb78'
-                  }}></div>
-                  <span style={{ color: '#48bb78', fontWeight: '600', fontSize: '0.9rem' }}>
-                    Status: Active
-                  </span>
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      background: '#48bb78',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '14px'
+                    }}>✅</div>
+                    <div>
+                      <div style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>
+                        {stats.approvedToday} PYQs approved today
+                      </div>
+                      <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>
+                        Keep up the great work!
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      background: '#4a90e2',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '14px'
+                    }}>👥</div>
+                    <div>
+                      <div style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>
+                        {stats.totalUsers} total users registered
+                      </div>
+                      <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>
+                        Growing community
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      background: '#9b59b6',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '14px'
+                    }}>📚</div>
+                    <div>
+                      <div style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>
+                        {stats.totalSubjects} subjects available
+                      </div>
+                      <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>
+                        Diverse content library
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* System Health */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '16px',
+                padding: '24px'
+              }}>
+                <h3 style={{
+                  color: 'white',
+                  fontSize: '1.3rem',
+                  fontWeight: '700',
+                  marginBottom: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  🔧 System Health
+                </h3>
+                
+                <div style={{ display: 'grid', gap: '16px' }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        background: '#48bb78'
+                      }}></div>
+                      <span style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>Database</span>
+                    </div>
+                    <span style={{ color: '#48bb78', fontSize: '12px', fontWeight: '600' }}>Online</span>
+                  </div>
+                  
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        background: '#48bb78'
+                      }}></div>
+                      <span style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>Server</span>
+                    </div>
+                    <span style={{ color: '#48bb78', fontSize: '12px', fontWeight: '600' }}>Running</span>
+                  </div>
+                  
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '12px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '8px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        background: stats.pendingRequests > 5 ? '#ffc107' : '#48bb78'
+                      }}></div>
+                      <span style={{ color: 'white', fontSize: '14px', fontWeight: '600' }}>Queue Status</span>
+                    </div>
+                    <span style={{ 
+                      color: stats.pendingRequests > 5 ? '#ffc107' : '#48bb78', 
+                      fontSize: '12px', 
+                      fontWeight: '600' 
+                    }}>
+                      {stats.pendingRequests > 5 ? 'Busy' : 'Normal'}
+                    </span>
+                  </div>
+                  
+                  <div style={{
+                    marginTop: '8px',
+                    padding: '12px',
+                    background: 'rgba(72, 187, 120, 0.1)',
+                    border: '1px solid rgba(72, 187, 120, 0.3)',
+                    borderRadius: '8px',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ color: '#48bb78', fontSize: '12px', fontWeight: '600' }}>
+                      ✨ All systems operational
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </motion.div>
         )}
+
+
 
         {/* Module Content */}
         <AnimatePresence mode="wait">
@@ -1174,6 +1483,308 @@ const AdminDashboard = () => {
                   </div>
                 </div>
               )}
+            </motion.div>
+          )}
+
+          {activeModule === 'analytics' && (
+            <motion.div
+              key="analytics"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
+              style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: '16px',
+                padding: '32px',
+                marginBottom: '40px'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+                <h3 style={{ 
+                  color: 'white', 
+                  fontSize: '1.5rem', 
+                  fontWeight: '700',
+                  margin: 0
+                }}>
+                  📊 Analytics Dashboard
+                </h3>
+                <motion.button
+                  onClick={handleCloseModule}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: '8px',
+                    padding: '8px',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    width: '32px',
+                    height: '32px'
+                  }}
+                >
+                  ✕
+                </motion.button>
+              </div>
+
+              {/* Key Metrics Grid */}
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                gap: '20px',
+                marginBottom: '32px' 
+              }}>
+                <div style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📈</div>
+                  <div style={{ color: 'white', fontSize: '1.5rem', fontWeight: '700' }}>
+                    {((stats.approvedToday / (stats.approvedToday + stats.rejectedToday)) * 100 || 0).toFixed(1)}%
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem' }}>Approval Rate</div>
+                </div>
+
+                <div style={{
+                  background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '8px' }}>⚡</div>
+                  <div style={{ color: 'white', fontSize: '1.5rem', fontWeight: '700' }}>
+                    {(stats.totalDownloads / stats.totalPYQs || 0).toFixed(1)}
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem' }}>Avg Downloads/PYQ</div>
+                </div>
+
+                <div style={{
+                  background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🎯</div>
+                  <div style={{ color: 'white', fontSize: '1.5rem', fontWeight: '700' }}>
+                    {(stats.totalPYQs / stats.totalSubjects || 0).toFixed(1)}
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem' }}>PYQs per Subject</div>
+                </div>
+
+                <div style={{
+                  background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '8px' }}>👥</div>
+                  <div style={{ color: 'white', fontSize: '1.5rem', fontWeight: '700' }}>
+                    {stats.totalUsers > 0 ? (stats.totalDownloads / stats.totalUsers).toFixed(1) : '0'}
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem' }}>Downloads per User</div>
+                </div>
+              </div>
+
+              {/* Activity Summary */}
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+                gap: '24px',
+                marginBottom: '32px' 
+              }}>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: '12px',
+                  padding: '24px'
+                }}>
+                  <h4 style={{ color: 'white', fontSize: '1.2rem', fontWeight: '600', marginBottom: '16px' }}>
+                    📊 Today's Activity
+                  </h4>
+                  <div style={{ display: 'grid', gap: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: 'rgba(255,255,255,0.8)' }}>✅ Approved</span>
+                      <span style={{ color: '#48bb78', fontWeight: '600' }}>{stats.approvedToday}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: 'rgba(255,255,255,0.8)' }}>❌ Rejected</span>
+                      <span style={{ color: '#ef4444', fontWeight: '600' }}>{stats.rejectedToday}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: 'rgba(255,255,255,0.8)' }}>⏳ Pending</span>
+                      <span style={{ color: '#ffc107', fontWeight: '600' }}>{stats.pendingRequests}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: '12px',
+                  padding: '24px'
+                }}>
+                  <h4 style={{ color: 'white', fontSize: '1.2rem', fontWeight: '600', marginBottom: '16px' }}>
+                    📈 Real-time Metrics
+                  </h4>
+                  <div style={{ display: 'grid', gap: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: 'rgba(255,255,255,0.8)' }}>Approval Rate</span>
+                      <span style={{ color: '#48bb78', fontWeight: '600' }}>
+                        {stats.approvedToday + stats.rejectedToday > 0 
+                          ? `${((stats.approvedToday / (stats.approvedToday + stats.rejectedToday)) * 100).toFixed(1)}%`
+                          : 'N/A'
+                        }
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: 'rgba(255,255,255,0.8)' }}>Avg Downloads/PYQ</span>
+                      <span style={{ color: '#4a90e2', fontWeight: '600' }}>
+                        {stats.totalPYQs > 0 ? (stats.totalDownloads / stats.totalPYQs).toFixed(1) : '0'}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: 'rgba(255,255,255,0.8)' }}>PYQs per Subject</span>
+                      <span style={{ color: '#9c27b0', fontWeight: '600' }}>
+                        {stats.totalSubjects > 0 ? (stats.totalPYQs / stats.totalSubjects).toFixed(1) : '0'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Most Popular Subjects */}
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '12px',
+                padding: '24px',
+                marginBottom: '32px'
+              }}>
+                <h4 style={{ color: 'white', fontSize: '1.2rem', fontWeight: '600', marginBottom: '20px' }}>
+                  🏆 Most Popular Subjects
+                </h4>
+                <div style={{ display: 'grid', gap: '16px' }}>
+                  {stats.popularSubjects && stats.popularSubjects.length > 0 ? (
+                    stats.popularSubjects.map((subject, index) => {
+                      const colors = ['#ff6b6b', '#4a90e2', '#48bb78', '#9b59b6', '#ffc107']
+                      const icons = ['🔢', '⚛️', '🧪', '💻', '📚']
+                      const color = colors[index] || '#6c757d'
+                      const icon = icons[index] || '📖'
+                      
+                      return (
+                        <motion.div
+                          key={subject._id}
+                          whileHover={{ scale: 1.02, x: 5 }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '16px',
+                            padding: '16px 20px',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            borderRadius: '12px',
+                            border: `2px solid ${color}20`,
+                            transition: 'all 0.3s ease',
+                            cursor: 'pointer'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = `${color}15`
+                            e.currentTarget.style.borderColor = `${color}40`
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'
+                            e.currentTarget.style.borderColor = `${color}20`
+                          }}
+                        >
+                          <div style={{
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: '12px',
+                            background: `linear-gradient(135deg, ${color}, ${color}dd)`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '20px',
+                            fontWeight: '700',
+                            color: 'white',
+                            boxShadow: `0 4px 12px ${color}30`
+                          }}>
+                            #{index + 1}
+                          </div>
+                          
+                          <div style={{
+                            fontSize: '24px',
+                            marginRight: '8px'
+                          }}>
+                            {icon}
+                          </div>
+                          
+                          <div style={{ flex: 1 }}>
+                            <div style={{
+                              color: 'white',
+                              fontSize: '16px',
+                              fontWeight: '700',
+                              marginBottom: '4px'
+                            }}>
+                              {subject.name}
+                            </div>
+                            <div style={{
+                              color: 'rgba(255,255,255,0.7)',
+                              fontSize: '14px',
+                              fontWeight: '500'
+                            }}>
+                              {subject.totalDownloads.toLocaleString()} downloads • {subject.pyqCount} PYQs
+                            </div>
+                          </div>
+                          
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}>
+                            <div style={{
+                              width: '60px',
+                              height: '6px',
+                              background: 'rgba(255, 255, 255, 0.2)',
+                              borderRadius: '3px',
+                              overflow: 'hidden'
+                            }}>
+                              <div style={{
+                                width: `${stats.popularSubjects.length > 0 ? (subject.totalDownloads / stats.popularSubjects[0].totalDownloads) * 100 : 0}%`,
+                                height: '100%',
+                                background: color,
+                                borderRadius: '3px',
+                                transition: 'width 0.5s ease'
+                              }}></div>
+                            </div>
+                            <span style={{
+                              color: color,
+                              fontSize: '12px',
+                              fontWeight: '600'
+                            }}>
+                              {stats.popularSubjects.length > 0 ? ((subject.totalDownloads / stats.popularSubjects[0].totalDownloads) * 100).toFixed(0) : 0}%
+                            </span>
+                          </div>
+                        </motion.div>
+                      )
+                    })
+                  ) : (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '40px',
+                      color: 'rgba(255,255,255,0.6)'
+                    }}>
+                      <div style={{ fontSize: '2rem', marginBottom: '12px' }}>📊</div>
+                      <div style={{ fontSize: '14px', fontWeight: '500' }}>
+                        No download data available yet
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
             </motion.div>
           )}
 
