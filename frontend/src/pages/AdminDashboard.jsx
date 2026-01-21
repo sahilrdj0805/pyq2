@@ -25,8 +25,6 @@ const AdminDashboard = () => {
   })
   const [subjects, setSubjects] = useState([])
   const [uploading, setUploading] = useState(false)
-  const [uploadStatus, setUploadStatus] = useState(null)
-  const [requestStatus, setRequestStatus] = useState(null)
   const [processingRequest, setProcessingRequest] = useState(null)
   const [processingAction, setProcessingAction] = useState(null) // 'approve' or 'reject'
   const [users, setUsers] = useState([])
@@ -196,9 +194,9 @@ const AdminDashboard = () => {
     try {
       await AdminAPI.approveRequest(requestId)
       await fetchDashboardData() // Refresh data
-      setRequestStatus({ type: 'success', message: 'Request approved successfully!' })
+      showToast('Request approved successfully!', 'success')
     } catch (error) {
-      setRequestStatus({ type: 'error', message: 'Failed to approve request' })
+      showToast('Failed to approve request', 'error')
     } finally {
       setProcessingRequest(null)
       setProcessingAction(null)
@@ -211,9 +209,9 @@ const AdminDashboard = () => {
     try {
       await AdminAPI.rejectRequest(requestId)
       await fetchDashboardData() // Refresh data
-      setRequestStatus({ type: 'success', message: 'Request rejected successfully!' })
+      showToast('Request rejected successfully!', 'success')
     } catch (error) {
-      setRequestStatus({ type: 'error', message: 'Failed to reject request' })
+      showToast('Failed to reject request', 'error')
     } finally {
       setProcessingRequest(null)
       setProcessingAction(null)
@@ -236,12 +234,11 @@ const AdminDashboard = () => {
   const handleUploadSubmit = async (e) => {
     e.preventDefault()
     if (!uploadForm.file || !uploadForm.title || !uploadForm.subjectName) {
-      setUploadStatus({ type: 'error', message: 'Please fill all fields and select a PDF file' })
+      showToast('Please fill all fields and select a PDF file', 'error')
       return
     }
 
     setUploading(true)
-    setUploadStatus(null)
 
     const formData = new FormData()
     formData.append('pdf', uploadForm.file)
@@ -810,24 +807,6 @@ const AdminDashboard = () => {
                   />
                 </div>
 
-                {/* Status Message */}
-                {uploadStatus && (
-                  <div style={{
-                    padding: '12px 16px',
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    background: uploadStatus.type === 'success' ? 'rgba(72, 187, 120, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                    border: `1px solid ${uploadStatus.type === 'success' ? '#48bb78' : '#ef4444'}`,
-                    color: 'white',
-                    fontSize: '0.9rem'
-                  }}>
-                    <span>{uploadStatus.type === 'success' ? '✅' : '❌'}</span>
-                    <span>{uploadStatus.message}</span>
-                  </div>
-                )}
-
                 <motion.button
                   type="submit"
                   disabled={uploading}
@@ -861,171 +840,7 @@ const AdminDashboard = () => {
             </motion.div>
           )}
 
-          {activeModule === 'admins' && user?.role === 'admin' && (
-            <motion.div
-              key="admins"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.4 }}
-            >
-              {/* Role Permissions Cards */}
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-                gap: '24px',
-                marginBottom: '40px' 
-              }}>
-                {/* Super Admin Card */}
-                <div style={{
-                  background: 'rgba(255, 107, 107, 0.1)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(255, 107, 107, 0.3)',
-                  borderRadius: '16px',
-                  padding: '24px'
-                }}>
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '12px',
-                    marginBottom: '16px' 
-                  }}>
-                    <span style={{ fontSize: '1.5rem' }}>🛡️</span>
-                    <h3 style={{ 
-                      color: '#ff6b6b', 
-                      fontSize: '1.3rem', 
-                      fontWeight: '700',
-                      margin: 0 
-                    }}>
-                      Super Admin
-                    </h3>
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.9)' }}>
-                    <div style={{ marginBottom: '8px' }}>✅ Manage PYQs</div>
-                    <div style={{ marginBottom: '8px' }}>✅ Upload PYQs</div>
-                    <div style={{ marginBottom: '8px' }}>✅ Manage Users</div>
-                    <div style={{ marginBottom: '8px' }}>✅ Manage Admins</div>
-                    <div>✅ View Analytics</div>
-                  </div>
-                </div>
 
-                {/* Admin Card */}
-                <div style={{
-                  background: 'rgba(74, 144, 226, 0.1)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(74, 144, 226, 0.3)',
-                  borderRadius: '16px',
-                  padding: '24px'
-                }}>
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '12px',
-                    marginBottom: '16px' 
-                  }}>
-                    <span style={{ fontSize: '1.5rem' }}>👤</span>
-                    <h3 style={{ 
-                      color: '#4a90e2', 
-                      fontSize: '1.3rem', 
-                      fontWeight: '700',
-                      margin: 0 
-                    }}>
-                      Admin
-                    </h3>
-                  </div>
-                  <div style={{ color: 'rgba(255,255,255,0.9)' }}>
-                    <div style={{ marginBottom: '8px' }}>✅ Manage PYQs</div>
-                    <div style={{ marginBottom: '8px' }}>✅ Upload PYQs</div>
-                    <div style={{ marginBottom: '8px' }}>❌ Manage Users</div>
-                    <div style={{ marginBottom: '8px' }}>❌ Manage Admins</div>
-                    <div>✅ View Analytics</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Add New Admin Button */}
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                style={{
-                  background: 'linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%)',
-                  border: 'none',
-                  borderRadius: '12px',
-                  padding: '16px 24px',
-                  color: 'white',
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginBottom: '32px'
-                }}
-              >
-                ➕ Add New Admin
-              </motion.button>
-
-              {/* Current Admins List */}
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.1)',
-                backdropFilter: 'blur(20px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '16px',
-                padding: '24px'
-              }}>
-                <h3 style={{ 
-                  color: 'white', 
-                  fontSize: '1.3rem', 
-                  fontWeight: '700',
-                  marginBottom: '20px' 
-                }}>
-                  Current Admins
-                </h3>
-                
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  padding: '16px',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  borderRadius: '8px',
-                  marginBottom: '12px'
-                }}>
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    gap: '12px' 
-                  }}>
-                    <span style={{ fontSize: '1.2rem' }}>🛡️</span>
-                    <div>
-                      <div style={{ 
-                        color: 'white', 
-                        fontWeight: '600' 
-                      }}>
-                        {user?.name}
-                      </div>
-                      <div style={{ 
-                        color: 'rgba(255,255,255,0.7)', 
-                        fontSize: '0.8rem' 
-                      }}>
-                        {user?.email}
-                      </div>
-                    </div>
-                  </div>
-                  <span style={{
-                    background: '#ff6b6b',
-                    padding: '4px 12px',
-                    borderRadius: '20px',
-                    fontSize: '0.8rem',
-                    fontWeight: '600',
-                    color: 'white'
-                  }}>
-                    Super Admin
-                  </span>
-                </div>
-              </div>
-            </motion.div>
-          )}
 
           {activeModule === 'subjects' && (
             <motion.div
@@ -1235,25 +1050,6 @@ const AdminDashboard = () => {
                   ✕
                 </motion.button>
               </div>
-              
-              {/* Status Message */}
-              {requestStatus && (
-                <div style={{
-                  padding: '12px 16px',
-                  borderRadius: '8px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  background: requestStatus.type === 'success' ? 'rgba(72, 187, 120, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                  border: `1px solid ${requestStatus.type === 'success' ? '#48bb78' : '#ef4444'}`,
-                  color: 'white',
-                  fontSize: '0.9rem',
-                  marginBottom: '20px'
-                }}>
-                  <span>{requestStatus.type === 'success' ? '✅' : '❌'}</span>
-                  <span>{requestStatus.message}</span>
-                </div>
-              )}
               
               {pendingRequests.length > 0 ? (
                 <div style={{ 

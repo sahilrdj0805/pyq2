@@ -127,50 +127,6 @@ export const deletePYQ = async (req, res) => {
   }
 };
 
-export const getAllAdmins = async (req, res) => {
-  try {
-    const admins = await User.find({ role: 'admin' }, '-password').sort({ createdAt: -1 });
-    res.json(admins);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-export const createAdmin = async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
-    
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "User with this email already exists" });
-    }
-    
-    // Hash password
-    const bcrypt = (await import('bcryptjs')).default;
-    const hashedPassword = await bcrypt.hash(password, 12);
-    
-    const newAdmin = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      role: 'admin'
-    });
-    
-    res.status(201).json({
-      message: "Admin created successfully",
-      admin: {
-        id: newAdmin._id,
-        name: newAdmin.name,
-        email: newAdmin.email,
-        role: newAdmin.role
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
 
 export const getDashboardStats = async (req, res) => {
   try {

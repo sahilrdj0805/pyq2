@@ -1,12 +1,8 @@
 import express from "express";
-import {
-  addSubject,
-  getSubjects
-} from "../controllers/subject.controller.js";
+import { getAllSubjects } from "../controllers/uploadRequestController.js";
 
 const router = express.Router();
 
-router.post("/", addSubject);   // admin later
-router.get("/", getSubjects);   // frontend dropdown
+router.get("/", getAllSubjects);   // frontend dropdown
 
 export default router;

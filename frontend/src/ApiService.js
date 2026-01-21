@@ -142,26 +142,6 @@ export const AdminAPI = {
     }
   },
 
-  // Get all admins
-  async getAllAdmins() {
-    try {
-      const response = await api.get('/admin/admins')
-      return response.data
-    } catch (error) {
-      throw new Error('Failed to fetch admins')
-    }
-  },
-
-  // Create new admin
-  async createAdmin(adminData) {
-    try {
-      const response = await api.post('/admin/admins', adminData)
-      return response.data
-    } catch (error) {
-      throw new Error(error.response?.data?.message || 'Failed to create admin')
-    }
-  },
-
   // Delete subject
   async deleteSubject(subjectId) {
     try {

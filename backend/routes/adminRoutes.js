@@ -7,8 +7,6 @@ import {
   getDashboardStats,
   getAllUsers,
   deleteUser,
-  getAllAdmins,
-  createAdmin,
   getAllSubjects,
   deleteSubject,
   deletePYQ
@@ -26,9 +24,7 @@ router.use(protect, adminOnly);
 router.get("/pending", getPendingRequests);
 router.get("/stats", getDashboardStats);
 router.get("/users", getAllUsers);
-router.get("/admins", getAllAdmins);
 router.get("/subjects", getAllSubjects);
-router.post("/admins", createAdmin);
 router.delete("/users/:id", deleteUser);
 router.delete("/subjects/:id", deleteSubject);
 router.delete("/pyqs/:id", deletePYQ);
