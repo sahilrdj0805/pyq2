@@ -14,11 +14,12 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     try {
-      const authHeaders = AuthService.getAuthHeaders()
-      config.headers = { ...config.headers, ...authHeaders }
+      const token = AuthService.getToken()
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
     } catch (error) {
-      // If no token, continue without auth headers for public endpoints
-      console.warn('No auth token available')
+      // Continue without auth headers for public endpoints
     }
     return config
   },
@@ -47,7 +48,6 @@ export const AdminAPI = {
       const response = await api.get('/admin/pending')
       return response.data
     } catch (error) {
-      console.error('Failed to fetch pending requests:', error)
       throw new Error('Failed to fetch pending requests')
     }
   },
@@ -56,10 +56,23 @@ export const AdminAPI = {
   async getDashboardStats() {
     try {
       const response = await api.get('/admin/stats')
-      return response.data.stats
+      return response.data.stats || {
+        totalUsers: 0,
+        totalPYQs: 0,
+        pendingRequests: 0,
+        totalDownloads: 0,
+        approvedToday: 0,
+        rejectedToday: 0
+      }
     } catch (error) {
-      console.error('Failed to fetch dashboard stats:', error)
-      throw new Error('Failed to fetch dashboard statistics')
+      return {
+        totalUsers: 0,
+        totalPYQs: 0,
+        pendingRequests: 0,
+        totalDownloads: 0,
+        approvedToday: 0,
+        rejectedToday: 0
+      }
     }
   },
 
@@ -69,7 +82,6 @@ export const AdminAPI = {
       const response = await api.put(`/admin/approve/${requestId}`)
       return response.data
     } catch (error) {
-      console.error('Failed to approve request:', error)
       throw new Error('Failed to approve request')
     }
   },
@@ -80,8 +92,72 @@ export const AdminAPI = {
       const response = await api.put(`/admin/reject/${requestId}`)
       return response.data
     } catch (error) {
-      console.error('Failed to reject request:', error)
       throw new Error('Failed to reject request')
+    }
+  },
+
+  // Get subjects
+  async getSubjects() {
+    try {
+      const response = await api.get('/subjects')
+      return response.data
+    } catch (error) {
+      throw new Error('Failed to fetch subjects')
+    }
+  },
+
+  // Admin direct upload PYQ (same as user upload)
+  async uploadPYQ(formData) {
+    try {
+      const response = await axios.post('http://localhost:8000/api/admin/upload-pyq', formData, {
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          ...AuthService.getAuthHeaders(null)
+        }
+      })
+      return response.data
+    } catch (error) {
+      throw error
+    }
+  },
+
+  // Get all users
+  async getAllUsers() {
+    try {
+      const response = await api.get('/admin/users')
+      return response.data
+    } catch (error) {
+      throw new Error('Failed to fetch users')
+    }
+  },
+
+  // Delete user
+  async deleteUser(userId) {
+    try {
+      const response = await api.delete(`/admin/users/${userId}`)
+      return response.data
+    } catch (error) {
+      throw new Error('Failed to delete user')
+    }
+  },
+
+  // Get all admins
+  async getAllAdmins() {
+    try {
+      const response = await api.get('/admin/admins')
+      return response.data
+    } catch (error) {
+      throw new Error('Failed to fetch admins')
+    }
+  },
+
+  // Create new admin
+  async createAdmin(adminData) {
+    try {
+      const response = await api.post('/admin/admins', adminData)
+      return response.data
+    } catch (error) {
+      throw new Error(error.response?.data?.message || 'Failed to create admin')
     }
   }
 }

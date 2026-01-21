@@ -16,8 +16,29 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+const allowedOrigins = [
+  'http://localhost:5173', // Vite dev server
+  'http://localhost:3000', // React dev server
+  'https://your-frontend-domain.com', // Production frontend
+  'https://your-app.vercel.app', // Vercel deployment
+  'https://your-app.netlify.app' // Netlify deployment
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // PDF Proxy Route for proper viewing
 app.get('/api/pdf/:id', async (req, res) => {
@@ -54,12 +75,17 @@ app.get('/api/download/:id', async (req, res) => {
     
     // Increment download count for this PYQ
     const pyqId = req.params.id;
-    if (pyqId && pyqId !== 'undefined') {
+    if (pyqId && pyqId !== 'undefined' && pyqId !== 'null') {
       try {
-        await import('./models/PYQ.js').then(module => {
-          const PYQ = module.default;
-          return PYQ.findByIdAndUpdate(pyqId, { $inc: { downloadCount: 1 } });
-        });
+        const PYQ = (await import('./models/PYQ.js')).default;
+        const result = await PYQ.findByIdAndUpdate(
+          pyqId, 
+          { $inc: { downloadCount: 1 } },
+          { new: true }
+        );
+        if (result) {
+          console.log(`Download count updated for PYQ ${pyqId}: ${result.downloadCount}`);
+        }
       } catch (error) {
         console.log('Could not update download count:', error.message);
       }

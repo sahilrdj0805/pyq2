@@ -5,20 +5,14 @@ import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import Browse from './pages/Browse'
 import Upload from './pages/Upload'
-import Admin from './pages/Admin'
+import AdminDashboard from './pages/AdminDashboard'
 import Auth from './pages/Auth'
 import Footer from './components/Footer'
 import AuthService from './AuthService'
 
 function AppContent() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(() => AuthService.isAuthenticated())
   const location = useLocation()
-
-  useEffect(() => {
-    setIsAuthenticated(AuthService.isAuthenticated())
-    setLoading(false)
-  }, [])
 
   useEffect(() => {
     // Disable browser back/forward buttons more aggressively
@@ -62,43 +56,13 @@ function AppContent() {
     }
   }, [isAuthenticated])
 
-  if (loading) {
-    return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-      }}>
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          style={{
-            width: '60px',
-            height: '60px',
-            border: '4px solid rgba(255,255,255,0.3)',
-            borderTop: '4px solid white',
-            borderRadius: '50%'
-          }}
-        />
-      </div>
-    )
-  }
-
-  // Redirect authenticated users away from auth pages
-  if (isAuthenticated && (location.pathname === '/login' || location.pathname === '/signup')) {
-    return <Navigate to="/" replace />
-  }
-
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div style={{ 
+      minHeight: '100vh',
+      visibility: 'visible'
+    }}>
       {isAuthenticated && <Navbar />}
-      <motion.main
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
+      <main>
         {!isAuthenticated ? (
           <Routes>
             <Route path="*" element={<Auth />} />
@@ -108,11 +72,11 @@ function AppContent() {
             <Route path="/" element={<Home />} />
             <Route path="/browse" element={<Browse />} />
             <Route path="/upload" element={<Upload />} />
-            <Route path="/admin" element={<Admin />} />
+            <Route path="/admin" element={<AdminDashboard />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         )}
-      </motion.main>
+      </main>
       {isAuthenticated && <Footer />}
     </div>
   )

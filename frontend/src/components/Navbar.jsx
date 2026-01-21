@@ -5,7 +5,7 @@ import AuthService from '../AuthService'
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false)
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(() => AuthService.getUser())
   const location = useLocation()
 
   useEffect(() => {
@@ -16,13 +16,6 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  useEffect(() => {
-    const userData = AuthService.getUser()
-    if (userData) {
-      setUser(userData)
-    }
-  }, [])
-
   const handleLogout = () => {
     AuthService.logout()
   }
@@ -31,15 +24,12 @@ const Navbar = () => {
     { name: 'Home', path: '/' },
     { name: 'Browse', path: '/browse' },
     { name: 'Upload', path: '/upload' },
-    ...(user?.role === 'admin' ? [{ name: 'Admin', path: '/admin' }] : []),
+    ...(user?.role === 'admin' || user?.role === 'superadmin' ? [{ name: 'Admin', path: '/admin' }] : []),
   ]
 
   return (
-    <motion.nav 
+    <nav 
       className={`navbar ${scrolled ? 'scrolled' : ''}`}
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.6 }}
     >
       <div className="container">
         <div className="nav-content">
@@ -72,13 +62,13 @@ const Navbar = () => {
                   gap: '8px'
                 }}>
                   <span style={{ 
-                    background: user.role === 'admin' ? '#ff6b6b' : '#4a90e2',
+                    background: user.role === 'superadmin' ? '#ff6b6b' : user.role === 'admin' ? '#9b59b6' : '#4a90e2',
                     padding: '4px 8px',
                     borderRadius: '12px',
                     fontSize: '0.8rem',
                     fontWeight: '600'
                   }}>
-                    {user.role === 'admin' ? '🛡️ Admin' : '👤 User'}
+                    {user.role === 'superadmin' ? '🛡️ Super Admin' : user.role === 'admin' ? '🛡️ Admin' : '👤 User'}
                   </span>
                   {user.name}
                 </div>
@@ -117,7 +107,7 @@ const Navbar = () => {
           </div>
         </div>
       </div>
-    </motion.nav>
+    </nav>
   )
 }
 

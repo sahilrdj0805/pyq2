@@ -2,21 +2,22 @@ import multer from "multer";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import cloudinary from "../config/cloudinary.js";
 
+// Cloudinary Storage
 const storage = new CloudinaryStorage({
-  cloudinary,
+  cloudinary: cloudinary,
   params: {
-    folder: "PYQs",
-    resource_type: "raw",   // IMPORTANT for PDF
-    allowed_formats: ["pdf"],
+    folder: "PYQs", // Same as before
+    resource_type: "raw",
+    allowed_formats: ["pdf"], // Same as before
     use_filename: true,
     unique_filename: false,
     transformation: [
-      { flags: "attachment" }  // This ensures proper PDF content-type
+      { flags: "attachment" } // This ensures proper PDF content-type
     ]
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage,
   fileFilter: (req, file, cb) => {
     if (file.mimetype === 'application/pdf') {

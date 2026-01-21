@@ -81,16 +81,21 @@ class AuthService {
   }
 
   // Get auth headers for API calls
-  static getAuthHeaders() {
+  static getAuthHeaders(contentType = 'application/json') {
     const token = this.getToken()
     if (!token) {
       throw new Error('No authentication token found')
     }
     
-    return {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
+    const headers = {
+      'Authorization': `Bearer ${token}`
     }
+    
+    if (contentType) {
+      headers['Content-Type'] = contentType
+    }
+    
+    return headers
   }
 
   // Logout user
